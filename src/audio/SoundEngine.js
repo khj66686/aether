@@ -155,6 +155,121 @@ class SoundEngine {
     return [noise, lpf, g]
   }
 
+  _buildInsects() {
+    const nodes = []
+    const ctx = this.ctx
+
+    // ── 귀뚜라미 레이어 ──────────────────────────────────────────
+    // 귀뚜라미 여러 마리: 4000~4800Hz 대역, 빠른 AM 변조로 '찌르르' 표현
+    const cricketFreqs = [4150, 4320, 4550, 4780, 4050]
+    cricketFreqs.forEach((freq, i) => {
+      const osc = ctx.createOscillator()
+      const oscGain = this._gain(0)
+      osc.type = 'sine'
+      osc.frequency.value = freq
+
+      // AM LFO — 각 귀뚜라미마다 약간 다른 chirp 속도 (28~36Hz)
+      const chirpLfo = ctx.createOscillator()
+      const chirpLfoGain = this._gain(0.08 + Math.random() * 0.04)
+      chirpLfo.type = 'sine'
+      chirpLfo.frequency.value = 28 + i * 1.8
+      oscGain.gain.value = 0.09
+
+      chirpLfo.connect(chirpLfoGain)
+      chirpLfoGain.connect(oscGain.gain)
+
+      // 귀뚜라미별 느린 ON/OFF 패턴 LFO (각자 다른 위상)
+      const phaseLfo = ctx.createOscillator()
+      const phaseLfoGain = this._gain(0.07)
+      phaseLfo.type = 'sine'
+      phaseLfo.frequency.value = 0.12 + i * 0.04
+
+      phaseLfo.connect(phaseLfoGain)
+      phaseLfoGain.connect(oscGain.gain)
+
+      osc.connect(oscGain)
+      oscGain.connect(this.masterGain)
+      osc.start(); chirpLfo.start(); phaseLfo.start()
+      nodes.push(osc, oscGain, chirpLfo, chirpLfoGain, phaseLfo, phaseLfoGain)
+    })
+
+    // 배경 고주파 노이즈 (벌레 무리의 잡음)
+    const bgNoise = this._noise('pink')
+    const bgHpf = this._hpf(3000)
+    const bgLpf = this._lpf(6000)
+    const bgGain = this._gain(0.06)
+    bgNoise.connect(bgHpf); bgHpf.connect(bgLpf); bgLpf.connect(bgGain)
+    bgGain.connect(this.masterGain)
+    bgNoise.start()
+    nodes.push(bgNoise, bgHpf, bgLpf, bgGain)
+
+    // ── 개구리 레이어 ──────────────────────────────────────────
+    // 개구리 2마리: 250~350Hz 범위, 랜덤 타이밍으로 "개굴" 연출
+    const frogConfigs = [
+      { baseFreq: 260, modFreq: 18, interval: 2800, offset: 0 },
+      { baseFreq: 310, modFreq: 22, interval: 3700, offset: 1400 },
+    ]
+
+    frogConfigs.forEach(cfg => {
+      // 개구리 FM 합성: carrier + modulator
+      const carrier = ctx.createOscillator()
+      const modulator = ctx.createOscillator()
+      const modGain = this._gain(80) // FM depth
+      const frogEnv = this._gain(0)
+      const frogLpf = this._lpf(700)
+
+      carrier.type = 'sine'
+      carrier.frequency.value = cfg.baseFreq
+      modulator.type = 'sine'
+      modulator.frequency.value = cfg.modFreq
+
+      modulator.connect(modGain)
+      modGain.connect(carrier.frequency)
+      carrier.connect(frogLpf)
+      frogLpf.connect(frogEnv)
+      frogEnv.connect(this.masterGain)
+
+      carrier.start(); modulator.start()
+
+      // 개구리 울음 envelope 스케줄링 (반복 타이머)
+      const croak = () => {
+        const now = ctx.currentTime
+        // "개굴개굴" — 짧은 버스트 2번
+        const burst = (t) => {
+          frogEnv.gain.setValueAtTime(0, t)
+          frogEnv.gain.linearRampToValueAtTime(0.18, t + 0.04)
+          frogEnv.gain.linearRampToValueAtTime(0.12, t + 0.08)
+          frogEnv.gain.linearRampToValueAtTime(0, t + 0.14)
+        }
+        burst(now)
+        burst(now + 0.2)  // 두 번째 음절
+      }
+
+      // offset으로 두 개구리 타이밍 엇갈리게
+      const timerId = setTimeout(() => {
+        croak()
+        const id = setInterval(croak, cfg.interval)
+        nodes.push({ stop: () => clearInterval(id), disconnect: () => {} })
+      }, cfg.offset)
+
+      nodes.push(
+        carrier, modulator, modGain, frogEnv, frogLpf,
+        { stop: () => clearTimeout(timerId), disconnect: () => {} }
+      )
+    })
+
+    // ── 배경 저음 (밤의 공기감) ──────────────────────────────
+    const nightNoise = this._noise('brown')
+    const nightLpf = this._lpf(300)
+    const nightGain = this._gain(0.08)
+    nightNoise.connect(nightLpf); nightLpf.connect(nightGain)
+    nightGain.connect(this.masterGain)
+    nightNoise.start()
+    nodes.push(nightNoise, nightLpf, nightGain)
+
+    return nodes
+  }
+
   play(soundId, volume = 0.6) {
     this._init()
     this.stop()
@@ -162,7 +277,7 @@ class SoundEngine {
     const builders = {
       rain: () => this._buildRain(),
       ocean: () => this._buildOcean(),
-      wind: () => this._buildWind(),
+      insects: () => this._buildInsects(),
       forest: () => this._buildForest(),
       silence: () => this._buildSilence(),
     }

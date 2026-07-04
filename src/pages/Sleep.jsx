@@ -7,7 +7,7 @@ const SLEEP_DURATIONS = [15, 30, 45, 60, 90]
 const SOUNDS = [
   { id: 'rain', icon: 'water_drop', label: '빗소리' },
   { id: 'ocean', icon: 'waves', label: '파도' },
-  { id: 'wind', icon: 'air', label: '바람' },
+  { id: 'insects', icon: 'bug_report', label: '벌레' },
   { id: 'forest', icon: 'forest', label: '숲' },
   { id: 'silence', icon: 'nightlight', label: '정적' },
 ]
@@ -40,7 +40,7 @@ function Clock() {
 export default function Sleep() {
   const navigate = useNavigate()
   const [selectedDuration, setSelectedDuration] = useState(30)
-  const [activeSound, setActiveSound] = useState('rain')
+  const [activeSound, setActiveSound] = useState('insects')
   const [sleeping, setSleeping] = useState(false)
   const [volume, setVolume] = useState(60)
   const [remaining, setRemaining] = useState(null)
