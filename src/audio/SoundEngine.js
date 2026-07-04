@@ -158,114 +158,150 @@ class SoundEngine {
   _buildInsects() {
     const nodes = []
     const ctx = this.ctx
+    let _stopped = false
 
-    // ── 귀뚜라미 레이어 ──────────────────────────────────────────
-    // 귀뚜라미 여러 마리: 4000~4800Hz 대역, 빠른 AM 변조로 '찌르르' 표현
-    const cricketFreqs = [4150, 4320, 4550, 4780, 4050]
-    cricketFreqs.forEach((freq, i) => {
-      const osc = ctx.createOscillator()
-      const oscGain = this._gain(0)
-      osc.type = 'sine'
-      osc.frequency.value = freq
+    // ── 귀뚜라미 레이어 ─────────────────────────────────────────────
+    // 6마리 귀뚜라미 — 각자 독립적인 랜덤 스케줄링 (LFO 없음)
+    const cricketDefs = [
+      { freq: 4100, bw: 280, vol: 0.11 },
+      { freq: 4350, bw: 240, vol: 0.09 },
+      { freq: 4600, bw: 300, vol: 0.10 },
+      { freq: 3900, bw: 260, vol: 0.08 },
+      { freq: 4800, bw: 220, vol: 0.09 },
+      { freq: 4200, bw: 350, vol: 0.07 },
+    ]
 
-      // AM LFO — 각 귀뚜라미마다 약간 다른 chirp 속도 (28~36Hz)
-      const chirpLfo = ctx.createOscillator()
-      const chirpLfoGain = this._gain(0.08 + Math.random() * 0.04)
-      chirpLfo.type = 'sine'
-      chirpLfo.frequency.value = 28 + i * 1.8
-      oscGain.gain.value = 0.09
+    cricketDefs.forEach(def => {
+      // 귀뚜라미 소리 채널: BP 필터된 노이즈 → 개별 gain envelope
+      const noiseNode = this._noise('pink')
+      const bpf = ctx.createBiquadFilter()
+      bpf.type = 'bandpass'
+      bpf.frequency.value = def.freq
+      bpf.Q.value = def.freq / def.bw
 
-      chirpLfo.connect(chirpLfoGain)
-      chirpLfoGain.connect(oscGain.gain)
+      const envGain = this._gain(0)
+      noiseNode.connect(bpf)
+      bpf.connect(envGain)
+      envGain.connect(this.masterGain)
+      noiseNode.start()
+      nodes.push(noiseNode, bpf, envGain)
 
-      // 귀뚜라미별 느린 ON/OFF 패턴 LFO (각자 다른 위상)
-      const phaseLfo = ctx.createOscillator()
-      const phaseLfoGain = this._gain(0.07)
-      phaseLfo.type = 'sine'
-      phaseLfo.frequency.value = 0.12 + i * 0.04
+      // 귀뚜라미 한 번 울음 (chirp): 빠른 attack → 짧은 sustain → decay
+      const chirp = (peakVol) => {
+        if (_stopped) return
+        const now = ctx.currentTime
+        const dur = 0.025 + Math.random() * 0.015  // 25-40ms
+        envGain.gain.cancelScheduledValues(now)
+        envGain.gain.setValueAtTime(0, now)
+        envGain.gain.linearRampToValueAtTime(peakVol, now + 0.006)
+        envGain.gain.setValueAtTime(peakVol * 0.85, now + dur * 0.4)
+        envGain.gain.linearRampToValueAtTime(0, now + dur)
+      }
 
-      phaseLfo.connect(phaseLfoGain)
-      phaseLfoGain.connect(oscGain.gain)
+      // 한 그룹: 3-5번 연속 울고 랜덤 침묵
+      const scheduleGroup = () => {
+        if (_stopped) return
+        // 랜덤하게 침묵하는 귀뚜라미 (약 20% 확률로 이번 사이클 건너뜀)
+        if (Math.random() < 0.2) {
+          const silenceMs = 800 + Math.random() * 2000
+          setTimeout(scheduleGroup, silenceMs)
+          return
+        }
+        const count = 3 + Math.floor(Math.random() * 3)   // 3~5 chirps
+        const spacing = 0.055 + Math.random() * 0.035     // 55-90ms 간격
+        const peakVol = def.vol * (0.75 + Math.random() * 0.5) // 볼륨 변동
 
-      osc.connect(oscGain)
-      oscGain.connect(this.masterGain)
-      osc.start(); chirpLfo.start(); phaseLfo.start()
-      nodes.push(osc, oscGain, chirpLfo, chirpLfoGain, phaseLfo, phaseLfoGain)
+        for (let i = 0; i < count; i++) {
+          const delay = i * spacing * 1000
+          setTimeout(() => { if (!_stopped) chirp(peakVol) }, delay)
+        }
+
+        // 다음 그룹까지 쉬는 시간: 400ms-2.5s (자연스러운 침묵 포함)
+        const pauseMs = 400 + Math.random() * 2100
+        setTimeout(scheduleGroup, count * spacing * 1000 + pauseMs)
+      }
+
+      // 첫 시작은 각 귀뚜라미마다 다른 랜덤 지연
+      setTimeout(scheduleGroup, Math.random() * 1500)
     })
 
-    // 배경 고주파 노이즈 (벌레 무리의 잡음)
+    // 배경 귀뚜라미 무리 소음 (아주 낮게, 공기감)
     const bgNoise = this._noise('pink')
-    const bgHpf = this._hpf(3000)
-    const bgLpf = this._lpf(6000)
-    const bgGain = this._gain(0.06)
+    const bgHpf = this._hpf(3500)
+    const bgLpf = this._lpf(7000)
+    const bgGain = this._gain(0.03)
     bgNoise.connect(bgHpf); bgHpf.connect(bgLpf); bgLpf.connect(bgGain)
     bgGain.connect(this.masterGain)
     bgNoise.start()
     nodes.push(bgNoise, bgHpf, bgLpf, bgGain)
 
-    // ── 개구리 레이어 ──────────────────────────────────────────
-    // 개구리 2마리: 250~350Hz 범위, 랜덤 타이밍으로 "개굴" 연출
-    const frogConfigs = [
-      { baseFreq: 260, modFreq: 18, interval: 2800, offset: 0 },
-      { baseFreq: 310, modFreq: 22, interval: 3700, offset: 1400 },
+    // ── 개구리 레이어 ──────────────────────────────────────────────
+    // 개구리 2마리 — 완전 랜덤 타이밍으로 "개굴" FM 합성
+    const frogDefs = [
+      { baseFreq: 255, modFreq: 20, vol: 0.16 },
+      { baseFreq: 305, modFreq: 16, vol: 0.13 },
     ]
 
-    frogConfigs.forEach(cfg => {
-      // 개구리 FM 합성: carrier + modulator
+    frogDefs.forEach(def => {
       const carrier = ctx.createOscillator()
       const modulator = ctx.createOscillator()
-      const modGain = this._gain(80) // FM depth
+      const modGain = this._gain(60)
       const frogEnv = this._gain(0)
-      const frogLpf = this._lpf(700)
+      const frogLpf = this._lpf(800)
 
       carrier.type = 'sine'
-      carrier.frequency.value = cfg.baseFreq
+      carrier.frequency.value = def.baseFreq
       modulator.type = 'sine'
-      modulator.frequency.value = cfg.modFreq
+      modulator.frequency.value = def.modFreq
 
       modulator.connect(modGain)
       modGain.connect(carrier.frequency)
       carrier.connect(frogLpf)
       frogLpf.connect(frogEnv)
       frogEnv.connect(this.masterGain)
-
       carrier.start(); modulator.start()
+      nodes.push(carrier, modulator, modGain, frogEnv, frogLpf)
 
-      // 개구리 울음 envelope 스케줄링 (반복 타이머)
+      // 한 번 개구리 울음: 단일 또는 "개굴개굴" 2-3음절
       const croak = () => {
+        if (_stopped) return
         const now = ctx.currentTime
-        // "개굴개굴" — 짧은 버스트 2번
-        const burst = (t) => {
+        const syllables = Math.random() < 0.4 ? 1 : (Math.random() < 0.6 ? 2 : 3)
+        const vol = def.vol * (0.7 + Math.random() * 0.4)
+        for (let i = 0; i < syllables; i++) {
+          const t = now + i * 0.22
           frogEnv.gain.setValueAtTime(0, t)
-          frogEnv.gain.linearRampToValueAtTime(0.18, t + 0.04)
-          frogEnv.gain.linearRampToValueAtTime(0.12, t + 0.08)
-          frogEnv.gain.linearRampToValueAtTime(0, t + 0.14)
+          frogEnv.gain.linearRampToValueAtTime(vol, t + 0.035)
+          frogEnv.gain.setValueAtTime(vol * 0.7, t + 0.09)
+          frogEnv.gain.linearRampToValueAtTime(0, t + 0.16)
         }
-        burst(now)
-        burst(now + 0.2)  // 두 번째 음절
       }
 
-      // offset으로 두 개구리 타이밍 엇갈리게
-      const timerId = setTimeout(() => {
+      const scheduleFrog = () => {
+        if (_stopped) return
         croak()
-        const id = setInterval(croak, cfg.interval)
-        nodes.push({ stop: () => clearInterval(id), disconnect: () => {} })
-      }, cfg.offset)
+        // 다음 울음까지 3-9초 완전 랜덤
+        const waitMs = 3000 + Math.random() * 6000
+        setTimeout(scheduleFrog, waitMs)
+      }
 
-      nodes.push(
-        carrier, modulator, modGain, frogEnv, frogLpf,
-        { stop: () => clearTimeout(timerId), disconnect: () => {} }
-      )
+      // 첫 울음은 1-5초 뒤 시작 (두 마리 타이밍 엇갈리게)
+      const initDelay = 1000 + Math.random() * 4000
+      const timerId = setTimeout(scheduleFrog, initDelay)
+      nodes.push({ stop: () => clearTimeout(timerId), disconnect: () => {} })
     })
 
-    // ── 배경 저음 (밤의 공기감) ──────────────────────────────
+    // ── 밤의 공기감 ────────────────────────────────────────────────
     const nightNoise = this._noise('brown')
-    const nightLpf = this._lpf(300)
-    const nightGain = this._gain(0.08)
+    const nightLpf = this._lpf(250)
+    const nightGain = this._gain(0.06)
     nightNoise.connect(nightLpf); nightLpf.connect(nightGain)
     nightGain.connect(this.masterGain)
     nightNoise.start()
     nodes.push(nightNoise, nightLpf, nightGain)
+
+    // stop() 호출 시 모든 setTimeout 루프도 즉시 중단
+    nodes.push({ stop: () => { _stopped = true }, disconnect: () => {} })
 
     return nodes
   }
