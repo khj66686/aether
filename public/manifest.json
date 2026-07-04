@@ -1,0 +1,26 @@
+{
+  "name": "Aether — 여름밤의 고요",
+  "short_name": "Aether",
+  "description": "달빛처럼 부드러운 명상과 수면 앱",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#131314",
+  "theme_color": "#131314",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "lifestyle"],
+  "lang": "ko"
+}

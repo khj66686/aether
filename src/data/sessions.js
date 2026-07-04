@@ -1,0 +1,70 @@
+export const sessions = [
+  {
+    id: 1,
+    title: '달빛 호흡',
+    subtitle: '수면 준비',
+    duration: '10분',
+    category: '수면',
+    tags: ['수면', '호흡'],
+    description: '잠들기 전 몸과 마음을 편안하게 이완시키는 달빛 호흡 명상입니다.',
+    color: 'tertiary',
+  },
+  {
+    id: 2,
+    title: '고요한 정적',
+    subtitle: '깊은 명상',
+    duration: '20분',
+    category: '명상',
+    tags: ['명상', '집중'],
+    description: '여름밤의 정적 속으로 깊이 들어가는 집중 명상 세션입니다.',
+    color: 'primary',
+  },
+  {
+    id: 3,
+    title: '불안 해소',
+    subtitle: '마음 안정',
+    duration: '15분',
+    category: '불안',
+    tags: ['불안', '이완'],
+    description: '긴장과 불안을 부드럽게 풀어주는 바디스캔 명상입니다.',
+    color: 'secondary',
+  },
+  {
+    id: 4,
+    title: '새벽 의식',
+    subtitle: '아침 루틴',
+    duration: '8분',
+    category: '집중',
+    tags: ['집중', '에너지'],
+    description: '하루를 맑은 정신으로 시작하는 아침 명상 루틴입니다.',
+    color: 'primary',
+  },
+  {
+    id: 5,
+    title: '수면 유도',
+    subtitle: '깊은 잠',
+    duration: '30분',
+    category: '수면',
+    tags: ['수면', '이완'],
+    description: '자연 소리와 함께 깊은 수면으로 안내하는 가이드 명상입니다.',
+    color: 'tertiary',
+  },
+  {
+    id: 6,
+    title: '스트레스 해소',
+    subtitle: '일상 회복',
+    duration: '12분',
+    category: '불안',
+    tags: ['스트레스', '이완'],
+    description: '일상의 스트레스를 내려놓고 현재에 집중하는 마음챙김입니다.',
+    color: 'secondary',
+  },
+]
+
+export const categories = ['전체', '수면', '명상', '불안', '집중']
+
+export const breathingPatterns = [
+  { name: '4-7-8 호흡', inhale: 4, hold: 7, exhale: 8, description: '수면 유도에 최적' },
+  { name: '박스 호흡', inhale: 4, hold: 4, exhale: 4, description: '집중력 향상' },
+  { name: '자연 호흡', inhale: 4, hold: 2, exhale: 6, description: '일반 이완' },
+]

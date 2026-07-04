@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background-color: #131314;
+    color: #e5e2e3;
+    font-family: 'Manrope', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  #root {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+@layer components {
+  .glass-card {
+    background: rgba(221, 226, 246, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(221, 226, 246, 0.1);
+  }
+
+  .glass-card-md {
+    background: rgba(221, 226, 246, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(221, 226, 246, 0.12);
+  }
+
+  .soft-gradient-bg {
+    background: radial-gradient(circle at 50% -20%, #1c1c3a 0%, #131314 60%);
+  }
+
+  .sleep-gradient-bg {
+    background: radial-gradient(ellipse at 50% 30%, #0a0a1a 0%, #131314 70%);
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .material-icon {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    user-select: none;
+  }
+
+  .material-icon-filled {
+    font-variation-settings: 'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+  }
+
+  .glow-lavender {
+    box-shadow: 0 0 60px 10px rgba(196, 192, 252, 0.15);
+  }
+
+  .glow-lavender-strong {
+    box-shadow: 0 0 80px 20px rgba(196, 192, 252, 0.3);
+  }
+
+  .progress-track {
+    background: rgba(196, 192, 252, 0.15);
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    background: linear-gradient(90deg, #c4c0fc, #9d9ad3);
+    border-radius: 9999px;
+    transition: width 1s linear;
+  }
+}
+
+@layer utilities {
+  .animate-pulse-glow {
+    animation: pulseGlow 8s ease-in-out infinite;
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.05); opacity: 1; }
+  }
+}
