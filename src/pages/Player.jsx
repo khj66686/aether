@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { sessions, breathingPatterns } from '../data/sessions'
 import { useFavorites, useHistory } from '../hooks/useUserData'
+import { breathTones } from '../audio/BreathTones'
 
 const PHASES = ['들이쉬기', '참기', '내쉬기']
 
@@ -19,6 +20,7 @@ export default function Player() {
   const { isFav, toggle: toggleFav } = useFavorites()
   const { addEntry } = useHistory()
   const [completed, setCompleted] = useState(false)
+  const [toneEnabled, setToneEnabled] = useState(true)
 
   const totalSeconds = parseInt(session.duration) * 60
   const [remaining, setRemaining] = useState(totalSeconds)
@@ -52,6 +54,10 @@ export default function Player() {
         phase = (phase + 1) % 3
         elapsed = 0
         setBreathPhase(phase)
+        // 페이즈 전환 시 가이드 톤 재생
+        if (phase === 0) breathTones.inhale()
+        else if (phase === 1) breathTones.hold()
+        else breathTones.exhale()
       }
     }
 
@@ -59,7 +65,15 @@ export default function Player() {
     setIsBreathing(true)
     setBreathPhase(0)
     setBreathProgress(0)
+    breathTones.inhale() // 첫 사이클 시작 톤
   }, [])
+
+  const toggleTone = () => {
+    setToneEnabled(v => {
+      breathTones.setEnabled(!v)
+      return !v
+    })
+  }
 
   const handlePatternChange = (idx) => {
     setPatternIdx(idx)
@@ -271,10 +285,12 @@ export default function Player() {
           </button>
 
           <button
-            onClick={() => navigate('/library')}
+            onClick={toggleTone}
             className="w-12 h-12 flex items-center justify-center rounded-full glass-card transition-all active:scale-95"
           >
-            <span className="material-icon text-on-surface-variant text-[22px]">playlist_add</span>
+            <span className={`material-icon text-[22px] transition-colors duration-200 ${toneEnabled ? 'text-tertiary' : 'text-on-surface-variant'}`}>
+              {toneEnabled ? 'music_note' : 'music_off'}
+            </span>
           </button>
         </div>
 
